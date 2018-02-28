@@ -1,0 +1,21 @@
+Experiment:
+    name: HeavyHitterSharedmap
+    ports:
+        - port-id: 0
+          modules:
+              - name: HeavyHitter::Sharedmap
+                size: 524288
+                keysize: 2
+                valsize: 3
+                socket: 1
+                file-prefix: hh-simple0-%04d.log
+                reporter-size: 2048
+        - port-id: 1
+          modules:
+              - name: HeavyHitter::Sharedmap
+                size: 524288
+                keysize: 2
+                valsize: 3
+                socket: 1
+                file-prefix: hh-simple1-%04d.log
+                reporter-size: 2048

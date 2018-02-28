@@ -1,0 +1,17 @@
+Experiment:
+    name: HeavyChangePktTest
+    ports:
+        - port-id: 0
+          modules:
+              - name: HeavyChange::PktTest
+                # size: 262144
+                size: 2097152
+                keysize: 2
+                valsize: 1
+                socket: 0
+                file-prefix: heavychange-pkttest-%04d.log
+                reporter-size: 2048
+                
+                # size -> the number of counters in each row;
+                # keysize -> the number of uint32_t in each key;
+                # valsize -> the number of uint32_t in each counter;

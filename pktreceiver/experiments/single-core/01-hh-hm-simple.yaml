@@ -1,0 +1,12 @@
+Experiment:
+    name: HeavyHitterHashmapSimple
+    ports:
+        - port-id: 1
+          modules:
+              - name: HeavyHitter::Hashmap
+                size: 524288
+                keysize: 2
+                valsize: 3
+                socket: 0
+                file-prefix: hh-simple-%04d.log
+                reporter-size: 2048

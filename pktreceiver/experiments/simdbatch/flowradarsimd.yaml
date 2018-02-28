@@ -1,0 +1,27 @@
+Experiment:
+    name: SimdBatchFlowRadarSimd
+    ports:
+        - port-id: 0
+          modules:
+              - name: SimdBatch::FlowRadarSimd
+                # size: 16384
+                # size: 32768
+                # size: 65536
+                # size: 131072
+                size: 262144
+                # size: 524288
+                # size: 1048576
+                # size: 2097152
+                # size: 4194304
+                # size: 8388608
+                # size: 16777216
+                # size: 33554432
+                keysize: 1
+                valsize: 1
+                socket: 0
+                file-prefix: simdbatch-flowradar-simd-%04d.log
+                reporter-size: 2048
+                
+                # size -> the number of counters in each row;
+                # keysize -> the number of uint32_t in each key;
+                # valsize -> the number of uint32_t in each counter;

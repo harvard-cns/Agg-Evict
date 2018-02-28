@@ -1,0 +1,27 @@
+Experiment:
+    name: HeavyChangeRevSketch
+    ports:
+        - port-id: 0
+          modules:
+              - name: HeavyChange::RevSketch
+                # size: 21845
+                # size: 43690
+                # size: 87381
+                # size: 174762
+                size: 349525
+                # size: 699051
+                # size: 1398101
+                # size: 2796202
+                # size: 5592404
+                # size: 11184808
+                # size: 22369616
+                # size: 44739232
+                keysize: 2
+                valsize: 1
+                socket: 0
+                file-prefix: heavychange-revsketch-%04d.log
+                reporter-size: 2048
+                
+                # size -> the number of counters in each row;
+                # keysize -> the number of uint32_t in each key;
+                # valsize -> the number of uint32_t in each counter;

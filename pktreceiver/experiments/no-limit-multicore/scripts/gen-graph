@@ -1,0 +1,516 @@
+#!/usr/bin/env bash
+#
+# Usage:
+#   ./generate-graphs [results-folder]
+#
+
+###############################################################################
+# Strict Mode
+###############################################################################
+
+# Short form: set -u
+set -o nounset
+
+# Exit immediately if a pipeline returns non-zero.
+set -o errexit
+
+# Return value of a pipeline is the value of the last (rightmost) command to
+# exit with a non-zero status, or zero if all commands in the pipeline exit
+# successfully.
+set -o pipefail
+
+# Set IFS to just newline and tab at the start
+# Supress ShellCheck unused variable warning:
+# shellcheck disable=SC2034
+DEFAULT_IFS="${IFS}"
+SAFER_IFS=$'\n\t'
+IFS="${SAFER_IFS}"
+
+###############################################################################
+# Environment
+###############################################################################
+
+# $_ME
+#
+# Set to the program's basename.
+_ME=$(basename "${0}")
+pushd $(dirname "${0}") > /dev/null
+_BASHDIR=$(pwd)
+popd > /dev/null
+
+_RDIR=${1:-'../results'}
+_RESULTDIR=${_BASHDIR}/${_RDIR}
+
+###############################################################################
+# Help
+###############################################################################
+
+# _print_help()
+#
+# Usage:
+#   _print_help
+#
+# Print the program help information.
+_print_help() {
+  cat <<HEREDOC
+
+Generate the paper graphs in the results directory.
+
+Usage:
+  ${_ME} [results-dir]
+  ${_ME} -h | --help
+
+Options:
+  -h --help  Show this screen.
+HEREDOC
+}
+
+###############################################################################
+# Program Functions
+###############################################################################
+
+_getAccuracy() {
+    local folder=$1
+    local groundDir=${_RESULTDIR}/groundtruth/$2
+
+    truePositives=`for i in {0..12}; do
+        local next=$(echo "$i + 1" | bc)
+        local gt_f=$(printf %04d $i)
+        local ac_f=$(printf %04d $next)
+
+        if ls ${folder}/*${ac_f}.log 1>/dev/null 2>&1; then
+            printf ""
+        else
+            printf "FAILED...."
+            exit 1
+        fi
+        comm -12 <(cat $groundDir/${gt_f}.log| cut -d" " -f1 | sort) \
+            <(cat ${folder}/*${ac_f}.log | cut -d" " -f1 | sort)
+    done | wc -l`
+
+    local relevantElements=$(cat $groundDir/*log | wc -l)
+    local selectedElements=$(cat ${folder}/*00*log | wc -l)
+
+    local precision=$(echo "scale=3;100*$truePositives/$relevantElements" | bc)
+    local recall=$(echo "scale=3;100*$truePositives/$selectedElements" | bc)
+
+    echo -e "$precision\t$recall"
+}
+
+_getThroughput() {
+    local folder=$1
+    local thr=$(tac $folder/app.log | grep Rate | awk -F'|' '{print $3}' | \
+        egrep 'Rate:(\s+)([0-9][0-9][0-9]([0-9]+))' | awk '{print $2}'   | \
+        head -n 10 | tail -n 8 | awk '{sum += $1; count +=1; } END {print sum/count}')
+    echo -e "$thr"
+}
+
+_getCycles() {
+    local folder=$1
+    local p50=$(tac $folder/app.log | egrep '50.0(\s*)Percentile:(\s*)([0-9]+)' \
+        | grep -v 4096 | awk '{print $4}' | head -n1)
+    local p95=$(tac $folder/app.log | egrep '95.0(\s*)Percentile:(\s*)([0-9]+)' \
+        | grep -v 4096 | awk '{print $4}' | head -n1)
+    local p99=$(tac $folder/app.log | egrep '99.0(\s*)Percentile:(\s*)([0-9]+)' \
+        | grep -v 4096 | awk '{print $4}' | head -n1)
+    local avg=$(tac $folder/app.log | egrep 'Average' | grep -v nan \
+        | awk '{print $5}' | head -n1)
+
+    echo -e "$avg\t$p50\t$p95\t$p99"
+}
+
+_getStats() {
+    local folder=$1
+    local stats=$(cat $folder/stats.log | awk '{print $2}')
+    echo -e "$stats"
+}
+
+_L3CacheUsage() {
+    coreNum=$1
+    egrep "^(\\s+)$coreNum(\\s+)" |
+    head -n 10 | tail -n 5 |
+    awk '{sum += $4; count +=1} END {print sum/count}'
+}
+
+_getCacheEaterResults() {
+    # Get results for cache-eaters
+    cacheFile=$1
+    runMask=$2
+    coreMask=1
+    coreNum=0
+    sum=0
+    count=0
+    while [[ "$coreMask" -le "0xfffffff" ]]; do
+        isCoreActive=$(( $coreMask & $runMask ))
+
+        if [ $isCoreActive -ne 0 ]; then
+            cacheUsage=$(tac $cacheFile | _L3CacheUsage $coreNum)
+            sum=$(echo "$cacheUsage + $sum" | bc -l)
+            count=$(($count + 1))
+        fi
+
+        coreNum=$(( $coreNum + 1 ))
+        coreMask=$(( $coreMask * 2 ))
+    done
+
+    echo -e "$sum\t$count"
+}
+
+_getCacheAppResults() {
+    aCoreNum="0" # Application core num
+    m1CoreNum="1" # Measurement core num
+    m2CoreNum="3" # Measurement core num
+    rCoreNum="5" # Reporter core num
+
+    ret=""
+    for coreId in $m1CoreNum $m2CoreNum $rCoreNum; do
+        cacheUsage=$(tac $cacheFile | _L3CacheUsage $coreId)
+        ret="$ret$cacheUsage\t"
+    done
+
+    cacheUsage=$(tac $cacheFile | _L3CacheUsage $aCoreNum)
+    echo -e "$ret$cacheUsage"
+}
+
+_getCacheResults() {
+    local folder=$1
+    local cacheFile=$(echo "$folder/cache.log")
+    local runMask=$(echo $folder | egrep '(0x([a-hA-H0-9]+))' -o)
+
+    cacheEaters=$(_getCacheEaterResults $cacheFile $runMask)
+    cacheApp=$(_getCacheAppResults $cacheFile)
+
+
+    echo -e "$cacheEaters\t$cacheApp"
+}
+
+_getFolderForExp() {
+    exp=$(_titleToDs $1)
+    trfcDist=$2
+    entries=$3
+    valSize=$4
+    eaterSize=$5
+    eaterMask=$6
+    local resultsDir=${_RESULTDIR}
+
+    echo -e "$resultsDir/$trfcDist/$exp/$entries/$valSize/$eaterSize/$eaterMask"
+}
+
+_statsForExp() {
+    _statsForFolder $(_getFolderForExp $1 $2 $3 $4 $5 $6) $1 $2 $3 $4 $5 $6
+}
+
+_statsForFolder() {
+    local expDir=$1
+    local exp=$2
+    local trfcDist=$3
+    local entries=$4
+    local valSize=$5
+    local eaterSize=$6
+    local eaterMask=$7
+
+    local time=$(_getCycles $expDir)
+    local thr=$(_getThroughput $expDir)
+    local stats=$(_getStats $expDir)
+    local size=$(_titleToSize $exp $entries $valSize)
+    local cache=$(_getCacheResults $expDir)
+
+    ###################################################################
+    #   1,    2,    3,       4,   5,   6,       7,  8,  9,  10,    11 #
+    # exp, size, dist, valSize, prec, acc, average, 50, 95, 99, stats #
+    ###################################################################
+
+    echo -e "$exp\t$size\t$trfcDist\t$valSize\t100\t$thr\t$time\t$stats\t$cache\t$eaterSize"
+}
+
+_generateCsvFiles() {
+    local resultsDir=${_RESULTDIR}
+    for trafficSize in $(ls -d $resultsDir/* | grep -v groundtruth | xargs -L1 basename); do
+        for exp in $(ls -d $resultsDir/$trafficSize/* | grep "01" | xargs -L1 basename); do
+            local name=$(_dsToTitle $exp)
+            for expSize in $(ls -d $resultsDir/$trafficSize/$exp/* | xargs -L1 basename); do
+                local expDir=$resultsDir/$trafficSize/$exp/$expSize;
+                if ls $expDir/*001*log 1>/dev/null 2>&1; then
+                    _statsForFolder $expDir $trafficSize | tee -a size-${size}.csv
+                fi
+            done | tee -a exp-${name}.csv
+        done | tee dist-${trafficSize}.csv
+    done
+}
+
+_titleToDs() {
+    local field=$1
+    local ret=""
+    case $field in
+        "Heap")         ret="01-hh-hm-pqueue";;
+        "CuckooBucket") ret="01-hh-hm-cuckoo-bucket";;
+        "CuckooPtr")    ret="01-hh-hm-cuckoo-ptr";;
+        "Cuckoo")       ret="01-hh-hm-cuckoo-local";;
+        "LinearPtr")    ret="01-hh-hm-linear-ptr";;
+        "Linear")       ret="01-hh-hm-linear";;
+        "RTEHash")      ret="01-hh-hm-cuckoo";;
+        "Simple")       ret="01-hh-hm-simple";;
+        *) ret=$field;;
+    esac
+    echo -e "$ret"
+}
+
+_dsToTitle() {
+    local field=$1
+    local ret=""
+    case $field in
+        *pqueue*)       ret="Heap";;
+        *cuckoo-bucket*)ret="CuckooBucket";;
+        *cuckoo-ptr*)   ret="CuckooPtr";;
+        *cuckoo-local*) ret="Cuckoo";;
+        *cuckoo*)       ret="RTEHash";;
+        *simple*)       ret="Simple";;
+        *linear-ptr*)   ret="LinearPtr";;
+        *linear*)       ret="Linear";;
+        *) $field;;
+    esac
+    echo -e "$ret"
+}
+
+_titleToSize() {
+    _dsToSize $(_titleToDs $1) $2 $3
+}
+
+_dsToSize() {
+    local field=$1
+    local size=$2
+    local keySize=2
+    local elSize=${3:-3}
+    local heapFactor=16
+    local heapExtra=1
+    local ret=""
+    case $field in
+        *pqueue*)       ret=$(echo "4 * ($keySize + $elSize + $heapExtra) * $heapFactor * 2" | bc);;
+        *cuckoo-bucket*)ret=$(echo "4 * ($keySize + $elSize + 1) * 2" |  bc);;
+        *cuckoo-ptr*)   ret=$(echo "4 * ($keySize + $elSize + 1) * 2" |  bc);;
+        *cuckoo-local*) ret=$(echo "4 * ($keySize + $elSize + 1) * 2" |  bc);;
+        *cuckoo*)       ret=$(echo "4 * ($keySize + $elSize + 1)" |  bc);;
+        *simple*)       ret=$(echo "4 * ($keySize + $elSize + 1)" |  bc);;
+        *linear-ptr*)   ret=$(echo "4 * ($keySize + $elSize + 1)" |  bc);;
+        *linear*)       ret=$(echo "4 * ($keySize + $elSize + 1)" |  bc);;
+    esac
+    echo -e $(echo "($ret * $size)" | bc)
+}
+
+_nameToLineType() {
+    local ret="1"
+    case $field in
+        *CuckooBucket*) ret="5";;
+        *CuckooPtr*)    ret="1";;
+        *Cuckoo*)       ret="2";;
+        *LinearPtr*)    ret="3";;
+        *Linear*)       ret="4";;
+        *Simple*)       ret="5";;
+        *Heap*)         ret="6";;
+        *RTEHash*)      ret="7";;
+    esac
+    echo -e "$ret"
+}
+
+_drawGraphGroupByField() {
+    graphName="graph.gp"
+    dataFile=$1
+
+    yColumnToExtract="\$$2"
+    yColumnFactor="${3:-1}"
+
+    xColumnToExtract="\$$4"
+    xColumnFactor="${5:-1}"
+
+    xLabel="$6"
+    yLabel="$7"
+    outputFile="${8:-graphs/graph.pdf}"
+
+    xLogScale=${9:-false}
+    yLogScale=${10:-false}
+
+    fieldGroup=${11:-1}
+
+    fields=$(cat $dataFile | awk "{print \$$fieldGroup}" | sort | uniq)
+
+    cat graph.tpl > $graphName
+    cat <<EOF >>$graphName
+# Get the directory of the benchmark
+set xlabel "$xLabel"
+set ylabel "$yLabel"
+set key outside horizontal bottom center 
+set mxtics 10
+# set yrange [10:100]
+EOF
+
+    if [ "$xLogScale" = true ]; then
+        cat <<EOF >>$graphName
+set logscale x
+EOF
+    fi
+
+    if [ "$yLogScale" = true ]; then
+        cat <<EOF >>$graphName
+set logscale y
+EOF
+    fi
+
+    count=0
+    printf "plot " >>$graphName
+    for field in $fields; do
+        cat $dataFile | egrep "$field(\s+|$)" | sort -nk$2 > ${field}-tmp.csv
+        local lt=$(_nameToLineType $field)
+        printf "'${field}-tmp.csv' using ($yColumnToExtract/($yColumnFactor)):($xColumnToExtract/($xColumnFactor))\
+            title '$field' w lp ls $lt," >>$graphName
+        count=$(($count + 1))
+    done
+
+    if [ "$count" -ne '0' ]; then
+        gnuplot $graphName
+        mv graph.pdf $outputFile
+        #rm *-tmp.csv
+    fi
+    #rm $graphName
+}
+
+
+###################################################################
+#   1,    2,    3,       4,   5,   6,       7,  8,  9,  10,    11 #
+# exp, size, dist, valSize, prec, acc, average, 50, 95, 99, stats #
+###################################################################
+_experimentCacheSizeCycles() {
+    # Available dist: 0.75 1.1 1.5
+    for dist in 1.1; do
+        for cacheSize in 1 2 4 8 16 32 64 128 256 512 1024 2048; do
+            for size in 2097152; do
+                _statsForExp "Simple" $dist $size 3 $cacheSize 0x80
+            done
+
+            for size in 2097152; do
+                _statsForExp "Linear" $dist $size 3 $cacheSize 0x80
+            done
+
+            for size in 1048576; do
+                _statsForExp "Cuckoo" $dist $size 3 $cacheSize 0x80
+            done
+
+            for size in 1048576; do
+                _statsForExp "CuckooBucket" $dist $size 3 $cacheSize 0x80
+            done
+        done
+    done | awk '{print $0"\t"$1"-"$3}' | tee stats-tmp.csv
+
+    _drawGraphGroupByField "stats-tmp.csv" '18' '1' '10' '1' "Cache size" "99th percentile (cycles)" "graphs/twisted.pdf" true false '19'
+    _drawGraphGroupByField "stats-tmp.csv" '18' '1' '7' '1' "Cache size" "Average (cycles)" "graphs/twisted-avg.pdf" true false '19'
+}
+
+###################################################################
+#   1,    2,    3,       4,   5,   6,       7,  8,  9,  10,    11 #
+# exp, size, dist, valSize, prec, acc, average, 50, 95, 99, stats #
+###################################################################
+_experimentCacheAppUtil64() {
+    # Available dist: 0.75 1.1 1.5
+    for dist in 1.1; do
+        for core in 0x80 0x280 0xA80 0x2A80 0xAA80 0x2AA80 0xAAA80; do
+            for size in 2097152; do
+                _statsForExp "Simple" $dist $size 3 64 $core
+            done
+
+            for size in 2097152; do
+                _statsForExp "Linear" $dist $size 3 64 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "Cuckoo" $dist $size 3 64 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "CuckooBucket" $dist $size 3 64 $core
+            done
+
+            for size in 262144; do
+                _statsForExp "Heap" $dist $size 3 64 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "Cuckoo" $dist $size 3 64 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "CuckooPtr" $dist $size 3 64 $core
+            done
+        done
+    done | awk '{print $0"\t"$1"-"$3}' | tee stats-tmp.csv
+
+    _drawGraphGroupByField "stats-tmp.csv" '13' '1' '10' '1' "Cache size" "99th percentile (cycles)" "graphs/twisted.pdf" true false '19'
+    _drawGraphGroupByField "stats-tmp.csv" '13' '1' '7' '1' "Cache size" "Average (cycles)" "graphs/twisted-avg.pdf" true false '19'
+}
+
+_experimentCacheAppUtil0() {
+    # Available dist: 0.75 1.1 1.5
+    for dist in 1.1; do
+        for core in 0x80 0x280 0xA80 0x2A80 0xAA80 0x2AA80 0xAAA80; do
+            for size in 2097152; do
+                _statsForExp "Simple" $dist $size 3 0 $core
+            done
+
+            for size in 2097152; do
+                _statsForExp "Linear" $dist $size 3 0 $core
+            done
+
+            for size in 2097152; do
+                _statsForExp "LinearPtr" $dist $size 3 0 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "CuckooPtr" $dist $size 3 0 $core
+            done
+
+            for size in 262144; do
+                _statsForExp "Heap" $dist $size 3 0 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "Cuckoo" $dist $size 3 0 $core
+            done
+
+            for size in 1048576; do
+                _statsForExp "CuckooBucket" $dist $size 3 0 $core
+            done
+        done
+    done | awk '{print $0"\t"$1"-"$3}' | tee stats-tmp.csv
+
+    _drawGraphGroupByField "stats-tmp.csv" '13' '1' '10' '1' "Cache size" "99th percentile (cycles)" "graphs/twisted.pdf" true false '19'
+    _drawGraphGroupByField "stats-tmp.csv" '13' '1' '7' '1' "Cache size" "Average (cycles)" "graphs/twisted-avg.pdf" true false '19'
+}
+
+
+_run() {
+    # _generateCsvFiles
+    # _drawGraphs
+    # rm *csv
+    #_experimentKeySizePointerPerformance
+    #_experimentKeySizePerformance
+    #_experimentOverallComparison
+    #_experimentSimpleAccuracy
+    #_experimentCacheSizeCycles
+    _experimentCacheAppUtil64
+    #_experimentCacheAppUtil0
+}
+
+
+###############################################################################
+# Main
+###############################################################################
+_main() {
+  # Avoid complex option parsing when only one program option is expected.
+  if [[ "${1:-}" =~ ^-h|--help$  ]]
+  then
+    _print_help
+  else
+    _run "${@}"
+  fi
+}
+
+# Call `_main` after everything has been defined.
+_main "${@:-}"

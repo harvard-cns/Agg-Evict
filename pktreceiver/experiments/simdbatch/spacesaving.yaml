@@ -1,0 +1,16 @@
+Experiment:
+    name: SimdBatchSpaceSaving
+    ports:
+        - port-id: 0
+          modules:
+              - name: SimdBatch::SpaceSaving
+                size: 128
+                keysize: 1
+                valsize: 1
+                socket: 0
+                file-prefix: simdbatch-spacesaving-%04d.log
+                reporter-size: 2048
+                
+                # size -> the number of counters in each row;
+                # keysize -> the number of uint32_t in each key;
+                # valsize -> the number of uint32_t in each counter;

@@ -1,0 +1,12 @@
+Experiment:
+    name: HeavyHitterCountMin
+    ports:
+        - port-id: 0
+          modules:
+              - name: HeavyHitter::CountMin
+                size: 524288
+                keysize: 2
+                valsize: 3
+                socket: 0
+                file-prefix: heavyhitter-countmin-%04d.log
+                reporter-size: 2048

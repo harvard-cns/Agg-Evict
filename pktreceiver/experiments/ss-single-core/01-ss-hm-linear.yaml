@@ -1,0 +1,11 @@
+Experiment:
+    name: SuperSpreaderHashmapLinear
+    ports:
+        - port-id: 1
+          modules:
+              - name: SuperSpreader::HashmapLinear
+                size: 524288
+                keysize: 1
+                socket: 0
+                file-prefix: ss-linear-%04d.log
+                reporter-size: 2048

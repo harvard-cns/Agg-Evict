@@ -1,0 +1,17 @@
+Experiment:
+    name: HeavyHitterHashmapSimple
+    ports:
+        - port-id: 1
+          modules:
+              - name: HeavyHitter::PQueue
+                size: 131072
+                keysize: 2
+                valsize: 3
+                socket: 1
+                file-prefix: hh-pqueue-%04d.log
+                reporter-size: 2048
+
+              - name: Generic::RandMod
+                randsize: 524288
+                accsize: 2
+                socket: 1

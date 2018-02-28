@@ -1,0 +1,23 @@
+Experiment:
+    name: HeavyHitterCountArray
+    ports:
+        - port-id: 0
+          modules:
+              - name: HeavyHitter::CountArray
+                # size: 16384
+                # size: 32768
+                # size: 65536
+                # size: 131072
+                # size: 262144
+                # size: 524288
+                # size: 1048576
+                # size: 2097152
+                size: 4194304
+                # size: 8388608
+                # size: 16777216
+                # size: 33554432
+                keysize: 2
+                valsize: 2
+                socket: 0
+                file-prefix: hh-countarray-%04d.log
+                reporter-size: 2048

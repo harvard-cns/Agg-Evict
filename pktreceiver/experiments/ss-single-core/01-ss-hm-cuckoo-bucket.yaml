@@ -1,0 +1,11 @@
+Experiment:
+    name: SuperSpreaderCuckooBucket
+    ports:
+        - port-id: 1
+          modules:
+              - name: SuperSpreader::CuckooBucket
+                size: 524288
+                keysize: 1
+                socket: 1
+                file-prefix: ss-cuckoo-bucket-%04d.log
+                reporter-size: 2048
