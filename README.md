@@ -78,7 +78,7 @@ where -l and -n are set according to your cpu infomation (check [dpdk doc](https
 
 
 ### Receiver side
-You should set the variable **sender_ip** in pktreceiver/src/main.c to the ip address of sender server (eg, 10.243.38.89).
+You should set the variable **sender_ip** in pktreceiver/src/main.c to the ip address of sender server (e.g., 10.243.38.89).
 
 ```
 sudo ./build/app/l2fwd -l 0-6 -n 2 -- ./experiments/simdbatch/cmsketch.yaml
@@ -93,7 +93,7 @@ where the file behind "--" could be any file in the fold of pktreceiver/experime
 - flowradarnosimd.yaml: testing FlowRadar with Agg-Evict without the assistance of SIMD instructions;
 
 After several seconds that both sides are running, the sender and receiver begin to communicate with each other to automatically and dichotomously adjust sending rate to reach the maximum value with no packet losses. 
-Then, the receiver side will continuously print the packet processing information including packet rate (ie, throughput), latencies (average and 99th percentile). 
+Then, the receiver side will continuously print the packet processing information including packet rate (i.e., throughput), latencies (average and 99th percentile). 
 Here is the example: 
 ![receiver_panel](./receiver_panel.png)
 In this figure, the packet rate is 12029368pps, the average latency is 121.8085/2.2 = 55.4ns (our cpu is at 2.2Ghz), and the 99th percentile latency is 182.0000/2.2 = 82.72ns.

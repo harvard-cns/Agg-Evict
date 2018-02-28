@@ -22,4 +22,4 @@ g++ -o zipf_trace_generator zipf_trace_generator.cpp -std=c++11
 
 ```
 This cpp file will generate 11 traces with different skewness. 
-You can change the value of *skew* (e.g., setting it to 1.1) in this cpp file to generate zipf traces with specific skewness. 
+You can change the value of variable **skew** (e.g., setting it to 1.1) in this cpp file to generate zipf traces with specific skewness. 
