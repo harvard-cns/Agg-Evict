@@ -81,7 +81,7 @@ where -l and -n are set according to your cpu infomation (check [dpdk doc](https
 You should set the variable **sender_ip** in pktreceiver/src/main.c to the ip address of sender server (eg, 10.243.38.89).
 
 ```
-sudo ./build/app/l2fwd -l 0-6 -n 2 -- /home/yangz/measure-pkt/experiments/simdbatch/cmsketch.yaml
+sudo ./build/app/l2fwd -l 0-6 -n 2 -- ./experiments/simdbatch/cmsketch.yaml
 ```
 where the file behind "--" could be any file in the fold of pktreceiver/experiments/simdbatch/: 
 
