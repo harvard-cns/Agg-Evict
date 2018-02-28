@@ -4,7 +4,7 @@
 
 Network measurement plays an important role for many network functions such as detecting network anomalies and identifying big flows. However, most existing measurement solutions fail to achieve high performance in software as they often incorporate heavy computations and a large number of random memory accesses. We present Agg-Evict, a generic framework for accelerating network measurement in software. Agg-Evict aggregates the incoming packets on the same flows and sends them as a batch, reducing the number of computations and random memory accesses in the subsequent measurement solutions. We perform extensive experiments on top of DPDK with 10G NIC and observe that almost all the tested measurement solutions under Agg-Evict can achieve 14.88 Mpps throughput and see up to 5.7× lower average processing latency per packet.
 
-## About this repo
+## About this repository
 
 This repo contains the source code and detailed descriptions of how to replicate our results. 
 Folder **mypktgen** contains the code for sending packets. 
@@ -21,8 +21,8 @@ We use two Ubuntu servers that run on Intel Xeon E5-2650 v4 processors. The proc
 
 ### Sender side
 
-- Set src MAC address in mypktgen/tload.c (line 98-103 and 161-166): pm->tcp.eth.s_addr.addr_bytes[0~5]; 
-- Set dst MAC address in mypktgen/tload.c (line 108-113 and 171-176): pm->tcp.eth.d_addr.addr_bytes[0~5]; 	
+- Set src MAC address in mypktgen/tload.c (line 98-103 and 161-166): **pm->tcp.eth.s_addr.addr_bytes[0~5]** 
+- Set dst MAC address in mypktgen/tload.c (line 108-113 and 171-176): **pm->tcp.eth.d_addr.addr_bytes[0~5]**
 
 
 ### Receiver side
