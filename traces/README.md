@@ -4,10 +4,10 @@ We use a one-minute trace from Equinix data center at Chicago from [CAIDA in 201
 We process this raw trace into our tested traces [traffic_sender.dat](https://www.dropbox.com/s/8mrouyhgbn3y715/traffic_sender.dat?dl=0) following this format: 
 
 ```
-src_ip dst_ip src_port dst_port
-src_ip dst_ip src_port dst_port
-src_ip dst_ip src_port dst_port
-src_ip dst_ip src_port dst_port
+src_ip dst_ip src_port dst_port proto_type
+src_ip dst_ip src_port dst_port proto_type
+src_ip dst_ip src_port dst_port proto_type
+src_ip dst_ip src_port dst_port proto_type
 ...
 ...
 ``` 
