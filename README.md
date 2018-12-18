@@ -108,10 +108,10 @@ In this artefact, our goal is to measure the efficiency of the packet processing
 
 
 ## Contact
-If you have any questions, please contact zhou.yang@pku.edu.cn.
+If you have any questions, please contact yangzhou@g.harvard.edu.
 
 
 ## Update of this opensource
-This opensource will be maintained and updated at [https://github.com/zhouyangpkuer/Agg-Evict](https://github.com/zhouyangpkuer/Agg-Evict). 
+This opensource will be maintained and updated at [https://github.com/harvard-cns/Agg-Evict](https://github.com/harvard-cns/Agg-Evict). 
 
 
