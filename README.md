@@ -39,6 +39,7 @@ None
 Note that on both sender and receiver sides, you has corresponding kernel driver been load and bind to one network port of a NIC and set the **RTE_SDK** environmental variable of DPDK. 
 We provide our script to load and bind driver in prepare-dpdk.sh. But we only tested this script on ubuntu 16.04 with kernel version of 4.4.0-96-generic and DPDK-16.07.2. 
 You might need to refer to [DPDK doc](https://doc.dpdk.org/guides/linux_gsg/index.html), if you are using different versions of system or DPDK.
+
 You can set corresponding network port address in it, put it into the dpdk fold, and run 
 ```
 sudo expect -f prepare-dpdk.sh
