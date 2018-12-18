@@ -128,6 +128,8 @@ int core_loop(void *ptr) {
     port_loop(port, rx_modules, null_ptr);
     return 0;
 }
+//char *sender_ip = "10.243.38.89";
+char sender_ip[128];
 
 int stats_loop(void *ptr) {
     PortPtr *ports = (PortPtr*)ptr;
@@ -135,7 +137,6 @@ int stats_loop(void *ptr) {
 
 
     int client_sockfd;
-    char *sender_ip = "10.243.38.89";
 
     struct sockaddr_in remote_addr;  
     memset(&remote_addr, 0, sizeof(remote_addr)); 
@@ -254,7 +255,8 @@ main(int argc, char **argv) {
         strcpy(logname, "univmon_res.txt");
     else
         strcat(logname, "_res.txt");
-
+    
+    strcpy(sender_ip, argv[2]);
 
     printf("%s\n", logname);
 
