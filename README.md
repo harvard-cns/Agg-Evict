@@ -21,9 +21,7 @@ We use two Ubuntu servers that run on Intel Xeon E5-2650 v4 processors. The proc
 
 ### Sender side
 
-- Set src MAC address in mypktgen/tload.c (line 98-103 and 161-166): **pm->tcp.eth.s_addr.addr_bytes[0~5]** 
-- Set dst MAC address in mypktgen/tload.c (line 108-113 and 171-176): **pm->tcp.eth.d_addr.addr_bytes[0~5]**
-
+None
 
 ### Receiver side
 
@@ -71,17 +69,17 @@ Sender will automatically adjust the sending rate to reach the maximum value wit
 ### Sender side
 
 ```
-sudo ./build/app/pkt-sender-auto -l 0-2 -n 2 -- -t ../traces/traffic_sender.dat -s 5000 -L 64 -T 66
+sudo ./build/app/pkt-sender-auto -l 0-2 -n 2 -- -t ../traces/traffic_sender.dat -s 5000 -L 64 -T 66 -a 0x101010101010 -b 010101010101
 
 ```	
 where -l and -n are set according to your cpu infomation (check [dpdk doc](https://dpdk.org/doc/guides/testpmd_app_ug/run_app.html)), -t is the traces that you want to send (you can also specify the synthetic zipf traces), -s is the initial sending rate that you set (actually, it has no impact on our experiments), -L is packet size, and -T is the times that you send the traces. 
 
 
 ### Receiver side
-You should set the variable **sender_ip** in pktreceiver/src/main.c to the ip address of sender server (e.g., 10.243.38.89).
+The variable **sender_ip** in pktreceiver/src/main.c is the ip address of sender server (e.g., 10.243.38.89), which is set via the command line argument as follows:
 
 ```
-sudo ./build/app/l2fwd -l 0-6 -n 2 -- ./experiments/simdbatch/cmsketch.yaml
+sudo ./build/app/l2fwd -l 0-6 -n 2 -- ./experiments/simdbatch/cmsketch.yaml 10.243.38.89
 ```
 where the file behind "--" could be any file in the fold of pktreceiver/experiments/simdbatch/: 
 
