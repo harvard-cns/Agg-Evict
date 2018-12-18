@@ -13,7 +13,7 @@ Folder **traces** contains the data packet traces or its generating method.
 
 ## System requirement
 
-We use two Ubuntu servers that run on Intel Xeon E5-2650 v4 processors. The processor has 12 cores, 256KB L2 cache, and 30MB shared L3 cache. The servers are connected by two Intel 82599ES 10G NICs and a switch set to L2 forwarding mode. We use DPDK-16.07.2, a set of data plane libraries for packet processing, to send and receive packets from the NIC.
+We use two Ubuntu servers that run on Intel Xeon E5-2650 v4 processors and Ubuntu 16.04 with kernel version of 4.4.0-96-generic. The processor has 12 cores, 256KB L2 cache, and 30MB shared L3 cache. The servers are connected by two Intel 82599ES 10G NICs and a switch set to L2 forwarding mode. We use DPDK-16.07.2, a set of data plane libraries for packet processing, to send and receive packets from the NIC.
 
 
 
@@ -37,7 +37,8 @@ None
 
 ## How to build 
 Note that on both sender and receiver sides, you has corresponding kernel driver been load and bind to one network port of a NIC and set the **RTE_SDK** environmental variable of DPDK. 
-We provide our script to load and bind driver in prepare-dpdk.sh. 
+We provide our script to load and bind driver in prepare-dpdk.sh. But we only tested this script on ubuntu 16.04 with kernel version of 4.4.0-96-generic and DPDK-16.07.2. 
+You might need to refer to [DPDK doc](https://doc.dpdk.org/guides/linux_gsg/index.html), if you are using different versions of system or DPDK.
 You can set corresponding network port address in it, put it into the dpdk fold, and run 
 ```
 sudo expect -f prepare-dpdk.sh
@@ -99,6 +100,10 @@ In this figure, the packet rate is 12029368pps, the average latency is 121.8085/
 Finally, after several minutes, the packet rate of receiver side will become very stable, then we can get the maximum packet rate with no packet loss from the printed infomation in the receiver side. 
 When the sender sends out the traffic trace -T times, the process at receiver side will be killed by itself, and the final latency information will be wrote into a file named **processinglatency.txt**. 
 
+
+## Note 
+The general latency term should refer to the the round-trip time from the packet generator and is usually determined by the buffering. 
+In this artefact, our goal is to measure the efficiency of the packet processing, and thus we tentatively use this term to specially refer to the packet processing time at receiver side. 
 
 
 ## Contact
