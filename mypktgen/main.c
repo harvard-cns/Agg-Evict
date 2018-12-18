@@ -69,6 +69,7 @@ uint32_t droped = 0;
 #define TIMES_DEFAULT 1
 
 uint32_t pkt_times = TIMES_DEFAULT;
+uint64_t src_mac, dst_mac;
 
 int cmd_change_rate = 0;
 
@@ -92,7 +93,7 @@ extern uint32_t pkt_length;
 
 static void usage()
 {
-    printf("Usage: pkt-sender <EAL options> -- -t <trace_file> -s <Mbps> -L <pkt_length> -T <pkt_times>\n");
+    printf("Usage: pkt-sender <EAL options> -- -t <trace_file> -s <Mbps> -L <pkt_length> -T <pkt_times> -a <src_mac> -b <dst_mac>\n");
     rte_exit(-1, "invalid arguments!\n");
 }
 
@@ -100,7 +101,7 @@ static void parse_params(int argc, char **argv)
 {
     char opt;
     int accept = 0;
-    while((opt = getopt(argc, argv, "t:s:L:T:")) != -1)
+    while((opt = getopt(argc, argv, "t:s:L:T:a:b:")) != -1)
     {
         switch(opt)
         {
@@ -117,6 +118,12 @@ static void parse_params(int argc, char **argv)
                       {
                           rte_exit(EINVAL, "pkt_length should be no less than 64!\n");
                       }
+                      break;
+            case 'a': 
+                      src_mac = (uint64_t)atol(optarg);
+                      break;
+            case 'b': 
+                      dst_mac = (uint64_t)atol(optarg);
                       break;
 	    case 'T':
 		     pkt_times = atoi(optarg);
@@ -489,9 +496,9 @@ int main(int argc, char **argv)
     rte_timer_subsystem_init();
 
 #ifndef GEN_VXLAN
-    ret = load_trace(ginfo.trace_file, pms);   
+    ret = load_trace(ginfo.trace_file, pms, src_mac, dst_mac);   
 #else
-    ret = load_vxlan_trace(ginfo.trace_file, pms);
+    ret = load_vxlan_trace(ginfo.trace_file, pms, src_mac, dst_mac);
 #endif
     ginfo.total_trace = ret;
     if(ret <= 0)

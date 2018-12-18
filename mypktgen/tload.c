@@ -63,7 +63,7 @@ static void debug_pm(struct packet_model pm)
 
 int cnt = 0;
 
-int load_trace_line(FILE *fp, struct packet_model *pm)
+int load_trace_line(FILE *fp, struct packet_model *pm, uint64_t src_mac, uint64_t dst_mac)
 {
     int i;
     char buff[256];
@@ -95,22 +95,23 @@ int load_trace_line(FILE *fp, struct packet_model *pm)
         
 
         // src: 90:e2:ba:2f:82:e4
-        pm->tcp.eth.s_addr.addr_bytes[0] = (uint8_t)0x90;
-        pm->tcp.eth.s_addr.addr_bytes[1] = (uint8_t)0xe2;
-        pm->tcp.eth.s_addr.addr_bytes[2] = (uint8_t)0xba;
-        pm->tcp.eth.s_addr.addr_bytes[3] = (uint8_t)0x2f;
-        pm->tcp.eth.s_addr.addr_bytes[4] = (uint8_t)0x82;
-        pm->tcp.eth.s_addr.addr_bytes[5] = (uint8_t)0xe4;
+        pm->tcp.eth.s_addr.addr_bytes[0] = (uint8_t)((src_mac >> 40) & 0xFF);
+        pm->tcp.eth.s_addr.addr_bytes[1] = (uint8_t)((src_mac >> 32) & 0xFF);
+        pm->tcp.eth.s_addr.addr_bytes[2] = (uint8_t)((src_mac >> 24) & 0xFF);
+        pm->tcp.eth.s_addr.addr_bytes[3] = (uint8_t)((src_mac >> 16) & 0xFF);
+        pm->tcp.eth.s_addr.addr_bytes[4] = (uint8_t)((src_mac >> 8) & 0xFF);
+        pm->tcp.eth.s_addr.addr_bytes[5] = (uint8_t)(src_mac & 0xFF);
 
 
 
         // dst: 90:e2:ba:86:78:d8
-        pm->tcp.eth.d_addr.addr_bytes[0] = (uint8_t)0x90;
-        pm->tcp.eth.d_addr.addr_bytes[1] = (uint8_t)0xe2;
-        pm->tcp.eth.d_addr.addr_bytes[2] = (uint8_t)0xba;
-        pm->tcp.eth.d_addr.addr_bytes[3] = (uint8_t)0x86;
-        pm->tcp.eth.d_addr.addr_bytes[4] = (uint8_t)0x78;
-        pm->tcp.eth.d_addr.addr_bytes[5] = (uint8_t)0xd8;
+        pm->tcp.eth.d_addr.addr_bytes[0] = (uint8_t)((dst_mac >> 40) & 0xFF);
+        pm->tcp.eth.d_addr.addr_bytes[1] = (uint8_t)((dst_mac >> 32) & 0xFF);
+        pm->tcp.eth.d_addr.addr_bytes[2] = (uint8_t)((dst_mac >> 24) & 0xFF);
+        pm->tcp.eth.d_addr.addr_bytes[3] = (uint8_t)((dst_mac >> 16) & 0xFF);
+        pm->tcp.eth.d_addr.addr_bytes[4] = (uint8_t)((dst_mac >> 8) & 0xFF);
+        pm->tcp.eth.d_addr.addr_bytes[5] = (uint8_t)(dst_mac & 0xFF);
+
 
         
 
@@ -267,7 +268,7 @@ int load_trace_line(FILE *fp, struct packet_model *pm)
     return VALID_LINE;
 }
 
-int load_trace(const char *file, struct packet_model pms[])
+int load_trace(const char *file, struct packet_model pms[], uint64_t src_mac, uint64_t dst_mac)
 {
 
     FILE *fp = fopen(file, "rb");
@@ -279,7 +280,7 @@ int load_trace(const char *file, struct packet_model pms[])
         rte_exit(-1, "open trace file failure!\n");
     }
     fgets(buff, 256, fp);
-    while((ret = load_trace_line(fp, &pms[count])) != END_LINE)
+    while((ret = load_trace_line(fp, &pms[count], uint64_t src_mac, uint64_t dst_mac)) != END_LINE)
     {
         if(ret == VALID_LINE)
         {
